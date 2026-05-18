@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/sync",
+      "schedule": "*/15 * * * *"
+    }
+  ],
+  "functions": {
+    "api/sync.js": { "maxDuration": 30 },
+    "api/data.js": { "maxDuration": 10 }
+  }
+}
