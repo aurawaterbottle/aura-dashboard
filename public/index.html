@@ -13,7 +13,7 @@
     .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
     .subtitle { font-size: 12px; color: #bbb; }
     .btn { font-size: 12px; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 600; border: none; }
-    .btn-sync { background: #4ECBA1; color: #fff; min-width: 110px; }
+    .btn-sync { background: #4ECBA1; color: #fff; min-width: 100px; }
     .btn-sync:hover { background: #3ab88e; }
     .btn-sync:disabled { background: #aaa; cursor: wait; }
     .btn-refresh { background: none; color: #888; border: 1px solid #e0e0e0; }
@@ -27,14 +27,19 @@
     .card { background: #fff; border: 1px solid #ebebeb; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
     .card-header { display: flex; align-items: center; gap: 10px; }
     .color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
-    .color-dot.fg { background: #3A7D44; } .color-dot.aw { background: #F0F0EC; border: 1.5px solid #c0c0c0; } .color-dot.mb { background: #1C1C1E; } .color-dot.fi { background: #4ECBA1; }
+    .color-dot.fg { background: #3A7D44; }
+    .color-dot.aw { background: #F0F0EC; border: 1.5px solid #c0c0c0; }
+    .color-dot.mb { background: #1C1C1E; }
+    .color-dot.fi { background: #4ECBA1; }
     .card-label { font-size: 13px; font-weight: 600; color: #555; }
     .card-value { font-size: 42px; font-weight: 700; color: #1a1a1a; line-height: 1; }
     .card-bar-bg { height: 5px; background: #f2f2f2; border-radius: 99px; overflow: hidden; }
     .card-bar { height: 100%; border-radius: 99px; }
     .bar-fg { background: #3A7D44; } .bar-aw { background: #aaa; } .bar-mb { background: #1C1C1E; } .bar-fi { background: #4ECBA1; }
     .card-status { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; display: inline-flex; align-items: center; gap: 4px; width: fit-content; }
-    .status-ok { background: #E8F5E9; color: #2E7D32; } .status-low { background: #FFF3E0; color: #E65100; } .status-critical { background: #FFEBEE; color: #C62828; }
+    .status-ok { background: #E8F5E9; color: #2E7D32; }
+    .status-low { background: #FFF3E0; color: #E65100; }
+    .status-critical { background: #FFEBEE; color: #C62828; }
     .correctie-box { background: #fff; border: 1px solid #ebebeb; border-radius: 14px; padding: 22px 24px; margin-bottom: 36px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
     .correctie-form { display: grid; grid-template-columns: 1fr 1fr 2fr 1fr auto; gap: 10px; align-items: end; margin-top: 14px; }
     .form-group { display: flex; flex-direction: column; gap: 5px; }
@@ -72,7 +77,7 @@
   <div class="header-right">
     <span class="subtitle">Bijgewerkt: <span id="lastUpdate">—</span></span>
     <button class="btn btn-refresh" onclick="fetchData()">&#8635; Ververs</button>
-    <button class="btn btn-sync" id="syncBtn" onclick="runSync()">&#9654; Sync nu</button>
+    <button class="btn btn-sync" id="syncBtn" onclick="runSync()">Sync nu</button>
   </div>
 </header>
 <main>
@@ -84,7 +89,7 @@
   <div class="correctie-box">
     <div style="font-size:13px;color:#888;">Defecten, cadeaus, intern gebruik of andere correcties die niet via Shopify lopen.</div>
     <div class="correctie-form">
-      <div class="form-group"><label>Type</label><select id="adjType"><option value="aftrek">- Aftrek</option><option value="toevoeging">+ Toevoeging</option></select></div>
+      <div class="form-group"><label>Type</label><select id="adjType"><option value="aftrek">Aftrek</option><option value="toevoeging">Toevoeging</option></select></div>
       <div class="form-group"><label>Product</label><select id="adjProduct"><option value="fg">Forest Green</option><option value="aw">Arctic White</option><option value="mb">Midnight Black</option><option value="fi">Filters</option></select></div>
       <div class="form-group"><label>Reden</label><input type="text" id="adjReason" placeholder="bijv. defect, cadeau..." /></div>
       <div class="form-group"><label>Aantal</label><input type="number" id="adjAmount" min="1" value="1" /></div>
@@ -101,7 +106,12 @@
 </main>
 <script>
   const API='/api/data', SYNC_API='/api/sync', ADJ_API='/api/adjust', SECRET='aura2026dashboard';
-  const cm={fg:{label:'Forest Green',cls:'fg',barCls:'bar-fg'},aw:{label:'Arctic White',cls:'aw',barCls:'bar-aw'},mb:{label:'Midnight Black',cls:'mb',barCls:'bar-mb'},fi:{label:'Filters',cls:'fi',barCls:'bar-fi'}};
+  const cm={
+    fg:{label:'Forest Green',cls:'fg',barCls:'bar-fg'},
+    aw:{label:'Arctic White',cls:'aw',barCls:'bar-aw'},
+    mb:{label:'Midnight Black',cls:'mb',barCls:'bar-mb'},
+    fi:{label:'Filters',cls:'fi',barCls:'bar-fi'}
+  };
 
   function renderCards(data){
     const maxQ=Math.max(...Object.values(data.inventory));
@@ -109,21 +119,30 @@
     for(const [k,q] of Object.entries(data.inventory)){
       const m=cm[k],t=data.thresholds[k],p=Math.min(100,Math.round((q/(maxQ*1.1))*100)),r=q/t;
       let sc,st;
-      if(r>=2){sc='status-ok';st='checkmark Op voorraad';}else if(r>=1){sc='status-low';st='! Laag';}else{sc='status-critical';st='x Kritiek';}
-      html+=`<div class="card"><div class="card-header"><div class="color-dot ${m.cls}"></div><span class="card-label">${m.label}</span></div><div class="card-value">${q}</div><div class="card-bar-bg"><div class="card-bar ${m.barCls}" style="width:${p}%"></div></div><span class="card-status ${sc}">${st}</span></div>`;
+      if(r>=2){sc='status-ok';st='&#10003; Op voorraad';}
+      else if(r>=1){sc='status-low';st='&#9888; Laag';}
+      else{sc='status-critical';st='&#10005; Kritiek';}
+      html+=`<div class="card">
+        <div class="card-header"><div class="color-dot ${m.cls}"></div><span class="card-label">${m.label}</span></div>
+        <div class="card-value">${q}</div>
+        <div class="card-bar-bg"><div class="card-bar ${m.barCls}" style="width:${p}%"></div></div>
+        <span class="card-status ${sc}">${st}</span>
+      </div>`;
     }
     html+='</div>';
     document.getElementById('cardsWrap').innerHTML=html;
   }
 
   function renderOrders(data){
-    let html='<table><thead><tr><th>#Order</th><th>Bundle</th><th>Flessen & Filters</th><th>Datum & Tijd</th></tr></thead><tbody>';
+    let html='<table><thead><tr><th>#Order</th><th>Bundle</th><th>Flessen &amp; Filters</th><th>Datum &amp; Tijd</th></tr></thead><tbody>';
     for(const o of data.orders){
       const ts=new Date(o.timestamp);
       const ds=ts.toLocaleDateString('nl-NL',{day:'2-digit',month:'short',year:'numeric'});
       const tm=(ts.getHours()===0&&ts.getMinutes()===0)?'':ts.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
       let badges='';
-      for(const [k,q] of Object.entries(o.deductions)){if(q>0){const m=cm[k];badges+=`<span class="ded-badge"><span class="ded-dot ${m.cls}"></span>${q}x ${m.label}</span>`;}}
+      for(const [k,q] of Object.entries(o.deductions)){
+        if(q>0){const m=cm[k];badges+=`<span class="ded-badge"><span class="ded-dot ${m.cls}"></span>${q}x ${m.label}</span>`;}
+      }
       html+=`<tr><td class="order-num">#${o.orderNumber}</td><td class="bundle-name">${o.bundleName}</td><td class="deductions">${badges||'&mdash;'}</td><td class="timestamp">${ds}${tm?' &middot; '+tm:''}</td></tr>`;
     }
     html+='</tbody></table>';
@@ -139,7 +158,7 @@
       for(const a of adj){
         const m=cm[a.product];
         const ts=new Date(a.timestamp).toLocaleString('nl-NL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-        const tl=a.type==='toevoeging'?'<span class="adj-type-toevoeging">+ Toevoeging</span>':'<span class="adj-type-aftrek">- Aftrek</span>';
+        const tl=a.type==='toevoeging'?'<span class="adj-type-toevoeging">&#43; Toevoeging</span>':'<span class="adj-type-aftrek">&#8722; Aftrek</span>';
         html+=`<tr><td>${tl}</td><td><span class="ded-badge"><span class="ded-dot ${m.cls}"></span>${m.label}</span></td><td>${a.amount}</td><td>${a.reason}</td><td class="timestamp">${ts}</td></tr>`;
       }
       html+='</tbody></table>';
@@ -173,8 +192,11 @@
     try{
       const res=await fetch(ADJ_API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SECRET},body:JSON.stringify({product,amount,reason,type})});
       const data=await res.json();
-      if(data.ok){fb.textContent='Correctie opgeslagen!';fb.className='correctie-feedback ok';document.getElementById('adjReason').value='';document.getElementById('adjAmount').value='1';fetchData();renderAdjustments();}
-      else{fb.textContent='Fout: '+(data.error||'onbekend');fb.className='correctie-feedback err';}
+      if(data.ok){
+        fb.textContent='Correctie opgeslagen!';fb.className='correctie-feedback ok';
+        document.getElementById('adjReason').value='';document.getElementById('adjAmount').value='1';
+        fetchData();renderAdjustments();
+      }else{fb.textContent='Fout: '+(data.error||'onbekend');fb.className='correctie-feedback err';}
     }catch(e){fb.textContent='Netwerkfout: '+e.message;fb.className='correctie-feedback err';}
   }
 
@@ -189,7 +211,8 @@
     }catch(e){err.textContent='Kon data niet laden: '+e.message;err.classList.add('visible');}
   }
 
-  fetchData();renderAdjustments();
+  fetchData();
+  renderAdjustments();
 </script>
 </body>
 </html>
