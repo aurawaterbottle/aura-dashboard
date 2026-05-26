@@ -159,6 +159,19 @@ const bundleName = order.line_items
 orderList.push({ orderNumber: order.order_number, bundleName, deductions: ded, timestamp: order.created_at });
 }
 
+// Handmatige correcties toepassen bovenop Shopify data
+const adjRaw = await kv.get('aura_adjustments');
+const adjustments = adjRaw ? (typeof adjRaw === 'string' ? JSON.parse(adjRaw) : adjRaw) : [];
+for (const adj of adjustments) {
+if (inventory[adj.product] !== undefined) {
+if (adj.type === 'toevoeging') {
+inventory[adj.product] = Math.max(0, inventory[adj.product] + adj.amount);
+} else {
+inventory[adj.product] = Math.max(0, inventory[adj.product] - adj.amount);
+}
+}
+}
+
 const payload = {
 inventory,
 thresholds: { fg: 50, aw: 50, mb: 50, fi: 100 },
