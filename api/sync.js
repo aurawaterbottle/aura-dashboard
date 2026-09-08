@@ -6,6 +6,15 @@ const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN;
 
 const BASE_INVENTORY = { fg: 393, aw: 306, mb: 277, fi: 1215 };
 
+// Vast startpunt van de voorraadmeting = moment dat het dashboard is opgezet
+// (18 mei 2026). GEEN rollend venster: alle Shopify-orders vanaf dit moment
+// tot nu worden van BASE_INVENTORY afgetrokken, zonder einddatum. Een rollend
+// venster liet oude orders er stilzwijgend uit vallen, waardoor de voorraad
+// zich "herstelde" omhoog.
+// BASE_INVENTORY moet de voorraad zijn zoals die op deze datum was.
+// Kan overschreven worden met de env var INVENTORY_ANCHOR_DATE (ISO 8601).
+const INVENTORY_ANCHOR_DATE = process.env.INVENTORY_ANCHOR_DATE || '2026-05-18T00:00:00+02:00';
+
 function getColorFromText(text) {
 const t = text.toLowerCase();
 if (t.includes('forest green') || t.includes('- fg') || t.includes('/ fg')) return 'fg';
@@ -114,17 +123,24 @@ if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
 return new Response('Unauthorized', { status: 401 });
 }
 try {
-const since = new Date(); since.setDate(since.getDate() - 90);
+// Vast ankerpunt i.p.v. rollend 90-dagen-venster (zie INVENTORY_ANCHOR_DATE).
+const since = new Date(INVENTORY_ANCHOR_DATE);
+if (isNaN(since.getTime())) throw new Error('Ongeldige INVENTORY_ANCHOR_DATE: ' + INVENTORY_ANCHOR_DATE);
 let orders = [], pageInfo = null, hasMore = true;
 
 while (hasMore) {
+// Shopify staat op vervolgpagina's (page_info) geen andere filters toe
+// dan limit/fields — anders 400. Daarom alleen op de 1e pagina filteren.
 const params = new URLSearchParams({
-status: 'any',
-created_at_min: since.toISOString(),
 limit: '250',
 fields: 'id,order_number,line_items,created_at,financial_status'
 });
-if (pageInfo) params.set('page_info', pageInfo);
+if (pageInfo) {
+params.set('page_info', pageInfo);
+} else {
+params.set('status', 'any');
+params.set('created_at_min', since.toISOString());
+}
 
 const res = await fetch(`https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?${params}`, {
 headers: { 'X-Shopify-Access-Token': SHOPIFY_TOKEN }
