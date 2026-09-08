@@ -28,6 +28,24 @@ const INVENTORY_ANCHOR_DATE = process.env.INVENTORY_ANCHOR_DATE || '2026-08-01T0
 
 const LEDGER_KEY = 'aura_ledger';
 const MAX_DISPLAY_ORDERS = 250; // hoeveel orders het dashboard toont (admin bewaart alles)
+
+// === bol.com ================================================================
+// Automatische afschrijving van bol.com-verkopen via de bol Retailer API.
+// Sleutels staan in Vercel als BOL_CLIENT_ID / BOL_CLIENT_SECRET.
+// Alleen bol-orders vanaf BOL_START_DATE tellen mee; alles daarvoor zit al in
+// de handmatige "Bol"-correcties. Vanaf die datum stopt de handmatige invoer.
+const BOL_CLIENT_ID = process.env.BOL_CLIENT_ID;
+const BOL_CLIENT_SECRET = process.env.BOL_CLIENT_SECRET;
+const BOL_START_DATE = process.env.BOL_START_DATE || '2026-09-08T00:00:00Z';
+
+// EAN -> deductie per verkocht stuk. Zelfde "fi"-eenheid als bij Shopify
+// (een filter-3-pack telt daar als 1 fi, dus hier ook).
+const BOL_EAN_MAP = {
+  '8720892831002': { aw: 1 }, // Aura RVS Waterfles 740ml - Arctic White
+  '8720892831019': { fg: 1 }, // Aura RVS Waterfles 740ml - Forest Green
+  '8720892831026': { mb: 1 }, // Aura RVS Waterfles 740ml - Midnight Black
+  '8720892831033': { fi: 1 }  // Aura Filters 3-Pack
+};
 // ============================================================================
 
 function getColorFromText(text) {
@@ -132,6 +150,61 @@ if (colors.length === 1) return [colors[0], colors[0]];
 return ['fg', 'mb']; // fallback
 }
 
+// Haalt bol.com-orders op via de Retailer API en levert ledger-entries terug,
+// gekeyed als "bol:<orderId>" zodat ze niet botsen met Shopify-order-ids.
+// Alleen orders vanaf BOL_START_DATE. Per orderregel: (quantity - quantityCancelled)
+// maal de EAN-deductie. Onbekende EAN's worden overgeslagen.
+async function fetchBolLedgerEntries() {
+if (!BOL_CLIENT_ID || !BOL_CLIENT_SECRET) return {};
+
+const tokenRes = await fetch('https://login.bol.com/token?grant_type=client_credentials', {
+method: 'POST',
+headers: {
+'Authorization': 'Basic ' + btoa(BOL_CLIENT_ID + ':' + BOL_CLIENT_SECRET),
+'Accept': 'application/json'
+}
+});
+if (!tokenRes.ok) throw new Error('bol token error: ' + tokenRes.status);
+const token = (await tokenRes.json()).access_token;
+if (!token) throw new Error('bol token ontbreekt in response');
+
+const start = new Date(BOL_START_DATE);
+const H = { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.retailer.v10+json' };
+const entries = {};
+
+for (let page = 1; page <= 20; page++) {
+const res = await fetch(`https://api.bol.com/retailer/orders?status=ALL&page=${page}`, { headers: H });
+if (res.status === 404) break; // geen orders meer
+if (!res.ok) throw new Error('bol orders error: ' + res.status);
+const orders = (await res.json()).orders || [];
+if (orders.length === 0) break;
+
+for (const order of orders) {
+const placed = new Date(order.orderPlacedDateTime);
+if (isNaN(placed.getTime()) || placed < start) continue;
+const d = { fg: 0, aw: 0, mb: 0, fi: 0 };
+const labels = [];
+for (const item of (order.orderItems || [])) {
+const map = BOL_EAN_MAP[item.ean];
+if (!map) continue;
+const qty = Math.max(0, (item.quantity || 0) - (item.quantityCancelled || 0));
+if (qty === 0) continue;
+for (const k in map) d[k] += map[k] * qty;
+labels.push('bol ' + item.ean + ' x' + qty);
+}
+entries['bol:' + order.orderId] = {
+n: 'bol ' + order.orderId,
+t: order.orderPlacedDateTime,
+b: labels.join(' + ') || 'bol.com',
+d,
+void: false
+};
+}
+if (orders.length < 50) break; // laatste pagina
+}
+return entries;
+}
+
 export default async function handler(req) {
 const authHeader = req.headers.get('authorization');
 if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -209,6 +282,20 @@ void: order.financial_status === 'voided' || order.financial_status === 'refunde
 };
 }
 
+// --- bol.com-orders erbij (aparte try/catch: bol-storing mag Shopify-sync
+//     en het opslaan niet blokkeren) ---
+let bolOrders = 0;
+let bolError = null;
+try {
+const bolEntries = await fetchBolLedgerEntries();
+for (const key in bolEntries) {
+if (!ledger.orders[key]) bolOrders++;
+ledger.orders[key] = bolEntries[key];
+}
+} catch (e) {
+bolError = e.message;
+}
+
 // --- Voorraad = ijkpunt minus som van alle (niet-geannuleerde) order-deducties ---
 const inventory = { ...ledger.anchorInventory };
 for (const id in ledger.orders) {
@@ -254,6 +341,8 @@ return new Response(JSON.stringify({
 ok: true,
 rebuilt: anchorChanged,
 newOrders,
+bolOrders,
+bolError,
 ordersInLedger: Object.keys(ledger.orders).length
 }), {
 status: 200, headers: { 'Content-Type': 'application/json' }
