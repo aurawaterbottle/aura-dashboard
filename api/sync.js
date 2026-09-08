@@ -5,8 +5,12 @@ const SHOPIFY_STORE = process.env.SHOPIFY_STORE;
 const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN;
 
 // === Voorraad-ijkpunt ========================================================
-// BASE_INVENTORY = de voorraad zoals FYSIEK geteld op INVENTORY_ANCHOR_DATE.
+// BASE_INVENTORY = de voorraad op INVENTORY_ANCHOR_DATE.
 // Alle Shopify-orders vanaf dat moment worden hiervan afgetrokken.
+//
+// Huidige ijkpunt: 1 aug 2026. BASE_INVENTORY hieronder is berekend uit de
+// beginvoorraad van 18 mei (fg393/aw306/mb277/fi1215) minus ALLE Shopify-orders
+// 18 mei -> 1 aug. Vanaf 1 aug pikt de sync de orders zelf weer op bij Shopify.
 //
 // Deze sync houdt een LOPENDE administratie bij in KV (key: aura_ledger).
 // Elke order wordt precies EEN keer geteld en blijft geteld - ook nadat hij
@@ -16,11 +20,11 @@ const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN;
 // NA EEN NIEUWE FYSIEKE TELLING:
 //   1. pas de 4 getallen in BASE_INVENTORY aan naar de getelde voorraad
 //   2. zet INVENTORY_ANCHOR_DATE op het moment van die telling
-//      (formaat: 'JJJJ-MM-DDTHH:MM:SS+02:00', bv '2026-11-15T18:00:00+01:00')
+//      (formaat: 'JJJJ-MM-DDTHH:MM:SSZ', bv '2026-11-15T17:00:00Z')
 //   3. committen -> de eerstvolgende sync gooit de administratie weg en bouwt
 //      hem automatisch opnieuw op vanaf dit nieuwe ijkpunt.
-const BASE_INVENTORY = { fg: 393, aw: 306, mb: 277, fi: 1215 };
-const INVENTORY_ANCHOR_DATE = process.env.INVENTORY_ANCHOR_DATE || '2026-05-18T00:00:00+02:00';
+const BASE_INVENTORY = { fg: 312, aw: 221, mb: 225, fi: 1004 };
+const INVENTORY_ANCHOR_DATE = process.env.INVENTORY_ANCHOR_DATE || '2026-08-01T00:00:00Z';
 
 const LEDGER_KEY = 'aura_ledger';
 const MAX_DISPLAY_ORDERS = 250; // hoeveel orders het dashboard toont (admin bewaart alles)
