@@ -49,6 +49,7 @@ const BOL_EAN_MAP = {
   '8720892831002': { aw: 1 }, // Aura RVS Waterfles 740ml - Arctic White
   '8720892831019': { fg: 1 }, // Aura RVS Waterfles 740ml - Forest Green
   '8720892831026': { mb: 1 }, // Aura RVS Waterfles 740ml - Midnight Black
+  '8720892831040': { er: 1 }, // Aura RVS Waterfles 740ml - Ember Red
   '8720892831033': { fi: 1 }  // Aura Filters 3-Pack
 };
 // ============================================================================
