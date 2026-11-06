@@ -23,19 +23,20 @@
     .loading { display: flex; align-items: center; justify-content: center; height: 100px; color: #bbb; font-size: 14px; gap: 8px; }
     .spinner { width: 18px; height: 18px; border: 2px solid #eee; border-top-color: #4ECBA1; border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 36px; }
+    .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 36px; }
     .card { background: #fff; border: 1px solid #ebebeb; border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
     .card-header { display: flex; align-items: center; gap: 10px; }
     .color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
     .color-dot.fg { background: #3A7D44; }
     .color-dot.aw { background: #F0F0EC; border: 1.5px solid #c0c0c0; }
     .color-dot.mb { background: #1C1C1E; }
+    .color-dot.er { background: linear-gradient(135deg, #1C1C1E, #7A1F2B); }
     .color-dot.fi { background: #4ECBA1; }
     .card-label { font-size: 13px; font-weight: 600; color: #555; }
     .card-value { font-size: 42px; font-weight: 700; color: #1a1a1a; line-height: 1; }
     .card-bar-bg { height: 5px; background: #f2f2f2; border-radius: 99px; overflow: hidden; }
     .card-bar { height: 100%; border-radius: 99px; }
-    .bar-fg { background: #3A7D44; } .bar-aw { background: #aaa; } .bar-mb { background: #1C1C1E; } .bar-fi { background: #4ECBA1; }
+    .bar-fg { background: #3A7D44; } .bar-aw { background: #aaa; } .bar-mb { background: #1C1C1E; } .bar-er { background: linear-gradient(90deg, #1C1C1E, #7A1F2B); } .bar-fi { background: #4ECBA1; }
     .card-status { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; display: inline-flex; align-items: center; gap: 4px; width: fit-content; }
     .status-ok { background: #E8F5E9; color: #2E7D32; }
     .status-low { background: #FFF3E0; color: #E65100; }
@@ -60,7 +61,7 @@
     .deductions { display: flex; gap: 6px; flex-wrap: wrap; }
     .ded-badge { display: inline-flex; align-items: center; gap: 5px; background: #f8f8f8; border: 1px solid #ebebeb; border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 600; color: #333; }
     .ded-dot { width: 9px; height: 9px; border-radius: 50%; }
-    .ded-dot.fg { background: #3A7D44; } .ded-dot.aw { background: #E8E8E4; border: 1px solid #bbb; } .ded-dot.mb { background: #1C1C1E; } .ded-dot.fi { background: #4ECBA1; }
+    .ded-dot.fg { background: #3A7D44; } .ded-dot.aw { background: #E8E8E4; border: 1px solid #bbb; } .ded-dot.mb { background: #1C1C1E; } .ded-dot.er { background: linear-gradient(135deg, #1C1C1E, #7A1F2B); } .ded-dot.fi { background: #4ECBA1; }
     .error-banner { background: #FFEBEE; color: #C62828; border-radius: 10px; padding: 14px 18px; font-size: 13px; margin-bottom: 24px; display: none; }
     .error-banner.visible { display: block; }
   </style>
@@ -90,7 +91,7 @@
     <div style="font-size:13px;color:#888;">Defecten, cadeaus, intern gebruik of andere correcties die niet via Shopify lopen.</div>
     <div class="correctie-form">
       <div class="form-group"><label>Type</label><select id="adjType"><option value="aftrek">Aftrek</option><option value="toevoeging">Toevoeging</option></select></div>
-      <div class="form-group"><label>Product</label><select id="adjProduct"><option value="fg">Forest Green</option><option value="aw">Arctic White</option><option value="mb">Midnight Black</option><option value="fi">Filters</option></select></div>
+      <div class="form-group"><label>Product</label><select id="adjProduct"><option value="fg">Forest Green</option><option value="aw">Arctic White</option><option value="mb">Midnight Black</option><option value="er">Ember Red</option><option value="fi">Filters</option></select></div>
       <div class="form-group"><label>Reden</label><input type="text" id="adjReason" placeholder="bijv. defect, cadeau..." /></div>
       <div class="form-group"><label>Aantal</label><input type="number" id="adjAmount" min="1" value="1" /></div>
       <button class="btn-correctie" onclick="submitCorrectie()">Opslaan</button>
@@ -110,6 +111,7 @@
     fg:{label:'Forest Green',cls:'fg',barCls:'bar-fg'},
     aw:{label:'Arctic White',cls:'aw',barCls:'bar-aw'},
     mb:{label:'Midnight Black',cls:'mb',barCls:'bar-mb'},
+    er:{label:'Ember Red',cls:'er',barCls:'bar-er'},
     fi:{label:'Filters',cls:'fi',barCls:'bar-fi'}
   };
 
