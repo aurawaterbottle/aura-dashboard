@@ -24,6 +24,11 @@ const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN;
 //   3. committen -> de eerstvolgende sync gooit de administratie weg en bouwt
 //      hem automatisch opnieuw op vanaf dit nieuwe ijkpunt.
 const BASE_INVENTORY = { fg: 312, aw: 221, mb: 225, fi: 1004 };
+// Nieuwe kleuren die NA het ijkpunt binnenkomen. Staan los van BASE_INVENTORY,
+// zodat de administratie niet opnieuw wordt opgebouwd (dat zou oude orders
+// buiten Shopify's 60-dagen-venster kwijtraken).
+// Ember Red: 504 binnen, 9 weggegeven -> 495 (nov 2026).
+const EXTRA_BASE_INVENTORY = { er: 495 };
 const INVENTORY_ANCHOR_DATE = process.env.INVENTORY_ANCHOR_DATE || '2026-08-01T00:00:00Z';
 
 const LEDGER_KEY = 'aura_ledger';
@@ -53,11 +58,12 @@ const t = text.toLowerCase();
 if (t.includes('forest green') || t.includes('- fg') || t.includes('/ fg')) return 'fg';
 if (t.includes('arctic white') || t.includes('- aw') || t.includes('/ aw')) return 'aw';
 if (t.includes('midnight black') || t.includes('- mb') || t.includes('/ mb')) return 'mb';
+if (t.includes('ember red') || t.includes('ember')) return 'er';
 return null;
 }
 
 function parseDeductions(lineItems) {
-const d = { fg: 0, aw: 0, mb: 0, fi: 0 };
+const d = { fg: 0, aw: 0, mb: 0, er: 0, fi: 0 };
 
 for (const item of lineItems) {
 const title = item.title || '';
@@ -182,7 +188,7 @@ if (orders.length === 0) break;
 for (const order of orders) {
 const placed = new Date(order.orderPlacedDateTime);
 if (isNaN(placed.getTime()) || placed < start) continue;
-const d = { fg: 0, aw: 0, mb: 0, fi: 0 };
+const d = { fg: 0, aw: 0, mb: 0, er: 0, fi: 0 };
 const labels = [];
 for (const item of (order.orderItems || [])) {
 const map = BOL_EAN_MAP[item.ean];
@@ -297,13 +303,20 @@ bolError = e.message;
 }
 
 // --- Voorraad = ijkpunt minus som van alle (niet-geannuleerde) order-deducties ---
-const inventory = { ...ledger.anchorInventory };
+const inventory = {
+fg: ledger.anchorInventory.fg || 0,
+aw: ledger.anchorInventory.aw || 0,
+mb: ledger.anchorInventory.mb || 0,
+er: (ledger.anchorInventory.er || 0) + (EXTRA_BASE_INVENTORY.er || 0),
+fi: ledger.anchorInventory.fi || 0
+};
 for (const id in ledger.orders) {
 const o = ledger.orders[id];
 if (o.void || !o.d) continue;
 inventory.fg -= (o.d.fg || 0);
 inventory.aw -= (o.d.aw || 0);
 inventory.mb -= (o.d.mb || 0);
+inventory.er -= (o.d.er || 0);
 inventory.fi -= (o.d.fi || 0);
 }
 
@@ -320,7 +333,7 @@ inventory[adj.product] = inventory[adj.product] - adj.amount;
 }
 }
 
-for (const k of ['fg', 'aw', 'mb', 'fi']) inventory[k] = Math.max(0, Math.round(inventory[k]));
+for (const k of ['fg', 'aw', 'mb', 'er', 'fi']) inventory[k] = Math.max(0, Math.round(inventory[k]));
 
 // --- Orderlijst voor het dashboard (nieuwste eerst, gecapt) ---
 const orderList = Object.values(ledger.orders)
@@ -330,7 +343,7 @@ const orderList = Object.values(ledger.orders)
 
 const payload = {
 inventory,
-thresholds: { fg: 50, aw: 50, mb: 50, fi: 100 },
+thresholds: { fg: 50, aw: 50, mb: 50, er: 50, fi: 100 },
 orders: orderList,
 lastUpdate: new Date().toISOString()
 };
